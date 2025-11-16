@@ -25,7 +25,7 @@ import { ChartDataSchema, TickDataSchema } from "./lib/open-api-schema";
 import { getTicks, injectTicks } from "./lib/ticks";
 import { fixHistoricalTimestamps, getYahooData, processRawYahooResponse } from "./lib/yahoo";
 
-const PORT = process.env.NODE_ENV === "production" ? process.env.PORT : 3000;
+const PORT = process.env.PORT ?? 3000;
 
 // Elysia API endpoints
 export const app = new Elysia()
@@ -286,7 +286,7 @@ export const app = new Elysia()
     })
   )
   .use(staticPlugin({ assets: "public", prefix: "" }))
-  .listen(PORT ?? 3000);
+  .listen(PORT);
 
 console.log(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
