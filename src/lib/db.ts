@@ -32,6 +32,18 @@ export const getDatabaseStatus = () => {
 };
 
 // sync API, not async
+export const getKnownTickers = (): string[] => {
+  const result = db
+    .select({
+      ticker: chart_data.ticker,
+    })
+    .from(chart_data)
+    .groupBy(chart_data.ticker)
+    .all();
+  return result.map((r) => r.ticker);
+};
+
+// sync API, not async
 export const getChartData = (
   ticker: string,
   start_date: string,

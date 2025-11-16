@@ -2,12 +2,22 @@ import { describe, expect, it } from "bun:test";
 import { app } from "..";
 
 describe("Elysia", () => {
-  it("returns a response", async () => {
+  it("returns ready status", async () => {
     const response = await app
-      .handle(new Request("http://localhost/"))
-      .then((res) => res.text());
+      .handle(new Request("http://localhost/ready"))
+      .then((res) => res.json());
 
-    expect(response).toBe("Hello Elysia");
+    expect(response).toBeDefined();
+    expect(response.status).toBe("ready");
+  });
+
+  it("returns uptime", async () => {
+    const response = await app
+      .handle(new Request("http://localhost/live"))
+      .then((res) => res.json());
+
+    expect(response).toBeDefined();
+    expect(response.uptime).toBeGreaterThan(0);
   });
 
   it("returns database status", async () => {

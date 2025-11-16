@@ -1,3 +1,5 @@
+import { sort } from "radash";
+
 export enum JobStatus {
   PENDING = "pending",
   RUNNING = "running",
@@ -8,18 +10,28 @@ export enum JobStatus {
 export enum JobType {
   FULL_UPDATE = "full",
   PARTIAL_UPDATE = "partial",
+  LIVE_ONLY = "live",
 }
 
 const jobs = new Map<string, { status: JobStatus; timestamp: number }>();
 
-export const allJobs = () => jobs.entries();
+export const allJobs = () =>
+  sort(
+    Array.from(jobs.entries()),
+    ([_, job]) => job.timestamp,
+    true // descending
+  );
 
 const jobKey = (ticker: string, type: JobType) => `${ticker}:${type}`;
 
 export const splitKey = (key: string) => {
   const [ticker, type] = key.split(":");
   const jobType =
-    type === JobType.FULL_UPDATE ? JobType.FULL_UPDATE : JobType.PARTIAL_UPDATE;
+    type === JobType.FULL_UPDATE
+      ? JobType.FULL_UPDATE
+      : type === JobType.PARTIAL_UPDATE
+      ? JobType.PARTIAL_UPDATE
+      : JobType.LIVE_ONLY;
   return { ticker, type: jobType };
 };
 

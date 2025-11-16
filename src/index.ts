@@ -1,10 +1,16 @@
 import { cors } from "@elysiajs/cors";
 import { Patterns, cron } from "@elysiajs/cron";
 import { fromTypes, openapi } from "@elysiajs/openapi";
-import { differenceInDays, startOfYear, subDays, subYears } from "date-fns";
+import { staticPlugin } from "@elysiajs/static";
+import { differenceInDays, subMonths } from "date-fns";
 import { Elysia, t } from "elysia";
 import invariant from "tiny-invariant";
-import { getChartData, getDatabaseStatus, upsertChartData } from "./lib/db";
+import {
+  getChartData,
+  getDatabaseStatus,
+  getKnownTickers,
+  upsertChartData,
+} from "./lib/db";
 import { pluralize } from "./lib/helpers";
 import {
   JobStatus,
@@ -50,15 +56,11 @@ export const app = new Elysia()
   )
   .use(
     cron({
-      name: "update-chart-data-job",
+      name: "poll-jobs",
       pattern: Patterns.EVERY_SECOND,
       run: async () => {
         for (const [key, { status, timestamp }] of allJobs()) {
-          const { ticker, type } = splitKey(key);
-          const jobType =
-            type === JobType.FULL_UPDATE
-              ? JobType.FULL_UPDATE
-              : JobType.PARTIAL_UPDATE;
+          const { ticker, type: jobType } = splitKey(key);
           if (status === JobStatus.PENDING) {
             // Mark as RUNNING atomically to prevent concurrent processing
             setJobStatus(ticker, jobType, JobStatus.RUNNING);
@@ -66,12 +68,13 @@ export const app = new Elysia()
             try {
               const res = await getYahooData(
                 ticker,
-                type === JobType.FULL_UPDATE
-                  ? startOfYear(
-                      subYears(new Date(timestamp), 5)
-                    ).toLocaleDateString("en-CA")
-                  : subDays(new Date(timestamp), 7).toLocaleDateString("en-CA"),
-                new Date().toLocaleDateString("en-CA")
+                "2025-11-12", // ignored start date
+                "2025-11-12", // ignored end date
+                jobType === JobType.FULL_UPDATE
+                  ? "5y"
+                  : jobType === JobType.PARTIAL_UPDATE
+                  ? "5d"
+                  : "1d"
               );
 
               const chartData = processRawYahooResponse(res);
@@ -105,14 +108,24 @@ export const app = new Elysia()
       },
     })
   )
-  .get("/", () => "Hello Elysia", {
+  .get("/ready", () => ({ status: "ready" }), {
     detail: {
-      summary: "Health check",
-      description: "Returns simple message to verify API is running",
+      summary: "Ready check",
+      description: "Returns ready status",
       tags: ["Health"],
     },
     response: {
-      200: t.String({ description: "Simple message" }),
+      200: t.Object({ status: t.Literal("ready") }),
+    },
+  })
+  .get("/live", () => ({ uptime: 1 + Math.floor(process.uptime()) }), {
+    detail: {
+      summary: "Uptime",
+      description: "Returns uptime in seconds",
+      tags: ["Health"],
+    },
+    response: {
+      200: t.Object({ uptime: t.Number({ description: "Uptime in seconds" }) }),
     },
   })
   .get("/db", () => getDatabaseStatus(), {
@@ -140,7 +153,7 @@ export const app = new Elysia()
       summary: "Get all ticks",
       description:
         "Retrieves tick data, including ticker, timestamp, and adjusted close price",
-      tags: ["Chart Data"],
+      tags: ["Live Data"],
     },
     response: {
       200: t.Array(TickDataSchema, { description: "Array of tick data" }),
@@ -158,8 +171,7 @@ export const app = new Elysia()
       }
 
       const sdate =
-        start_date ??
-        startOfYear(subYears(new Date(), 5)).toLocaleDateString("en-CA");
+        start_date ?? subMonths(new Date(), 6).toLocaleDateString("en-CA");
       const edate = end_date ?? new Date().toLocaleDateString("en-CA");
       const chartData = getChartData(ticker, sdate, edate);
 
@@ -168,6 +180,7 @@ export const app = new Elysia()
         addJob(ticker, JobType.FULL_UPDATE);
       } else {
         invariant(chartData.length > 0, `${ticker} has no data`);
+
         // daysBehind is positive if the data is behind the end_date
         const daysBehind = differenceInDays(
           new Date(end_date),
@@ -213,25 +226,42 @@ export const app = new Elysia()
     }
   )
   .post(
+    "/force-update",
+    () => {
+      const allTickers = getKnownTickers();
+      for (const ticker of allTickers) {
+        addJob(ticker, JobType.LIVE_ONLY);
+      }
+      return { message: `Started live update for all tickers` };
+    },
+    {
+      detail: {
+        summary: "Force live update for all tickers",
+        description:
+          "Forces an update of live market data for all known tickers",
+        tags: ["Live Data"],
+      },
+      response: {
+        200: t.Object({ message: t.String({ description: "Message" }) }),
+      },
+    }
+  )
+  .post(
     "/force-update/:ticker",
     ({ params }) => {
       const { ticker } = params;
-      if (!ticker) {
-        return {
-          error: "ticker is required",
-        };
-      }
       addJob(ticker, JobType.FULL_UPDATE);
-      return { message: `Full update forced for ${ticker}` };
+      return { message: `Started full update for ${ticker}` };
     },
     {
       params: t.Object({
         ticker: t.String({ description: "Ticker symbol" }),
       }),
       detail: {
-        summary: "Force update chart data for a ticker",
-        description: "Forces an update of the chart data for a ticker",
-        tags: ["Chart Data"],
+        summary: "Force full update for a ticker",
+        description:
+          "Forces an update of the full chart data for a specific ticker",
+        tags: ["Chart Data", "Live Data"],
       },
       response: {
         200: t.Object({ message: t.String({ description: "Message" }) }),
@@ -255,6 +285,7 @@ export const app = new Elysia()
       },
     })
   )
+  .use(staticPlugin({ assets: "public", prefix: "" }))
   .listen(PORT);
 
 console.log(

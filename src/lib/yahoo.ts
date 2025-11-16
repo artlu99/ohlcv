@@ -68,7 +68,8 @@ export const yahooCache = new ApiCache<YahooFinanceResponse>({
 export const getYahooData = async (
   symbol: string,
   start_date: string,
-  end_date: string
+  end_date: string,
+  range?: "1d" | "5d" | "5y" | undefined
 ): Promise<YahooFinanceResponse> => {
   const cacheKey = `${symbol}:${start_date}:${end_date}`;
 
@@ -77,12 +78,17 @@ export const getYahooData = async (
 
   return yahooCache.getOrFetch(cacheKey, async () => {
     console.log(
-      `Fetching ${symbol} from Yahoo Finance API: ${start_date} ~ ${end_date}`
+      `Fetching ${symbol} from Yahoo Finance API: ${
+        range ? range : `${start_date} ~ ${end_date}`
+      }`
     );
 
+    const queryString =
+      "interval=1d&" +
+      (range ? `range=${range}` : `period1=${period1}&period2=${period2}`);
     try {
       return await yahooApi.get<YahooFinanceResponse>(
-        `/${g2y(symbol)}?interval=1d&period1=${period1}&period2=${period2}`
+        `/${g2y(symbol)}?${queryString}`
       );
     } catch (error: unknown) {
       const err = error as {
