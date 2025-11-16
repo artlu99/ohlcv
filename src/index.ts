@@ -60,6 +60,9 @@ export const app = new Elysia()
               ? JobType.FULL_UPDATE
               : JobType.PARTIAL_UPDATE;
           if (status === JobStatus.PENDING) {
+            // Mark as RUNNING atomically to prevent concurrent processing
+            setJobStatus(ticker, jobType, JobStatus.RUNNING);
+
             try {
               const res = await getYahooData(
                 ticker,

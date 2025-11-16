@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite";
 import { isBefore, isSameDay, isValid } from "date-fns";
-import { and, count, eq, gte, lte, max, min } from "drizzle-orm";
+import { and, count, eq, gte, lte, max } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { sort } from "radash";
 import invariant from "tiny-invariant";
@@ -88,25 +88,69 @@ export const getChartData = (
   return result;
 };
 
-// async API
-export const upsertChartData = async (data: ChartData[]) => {
-  try {
-    const start = performance.now();
+// Track in-flight upsert operations to prevent duplicate work
+const inFlightUpserts = new Map<string, Promise<void>>();
 
-    // Bulk insert is more efficient than individual inserts
-    if (data.length > 0) {
-      db.insert(chart_data).values(data).onConflictDoNothing().run();
-    }
-
-    const end = performance.now();
-    const duration = end - start;
-    console.log(
-      `Inserted ${data.length} rows in ${duration.toFixed(2)}ms (${(
-        duration / data.length
-      ).toFixed(2)}ms per row)`
-    );
-  } catch (error) {
-    console.error(error);
-    throw error;
+/**
+ * Generate idempotency key from chart data
+ * Same ticker + date range = same key (idempotent)
+ */
+const getIdempotencyKey = (data: ChartData[]): string => {
+  if (data.length === 0) {
+    return "empty";
   }
+  // Use ticker + first date + last date as idempotency key
+  // Sort by dt_string to get date range
+  const sorted = [...data].sort((a, b) =>
+    a.dt_string.localeCompare(b.dt_string)
+  );
+  const ticker = sorted[0].ticker;
+  const firstDate = sorted[0].dt_string;
+  const lastDate = sorted[sorted.length - 1].dt_string;
+  return `${ticker}:${firstDate}:${lastDate}`;
+};
+
+// async API with idempotency protection
+export const upsertChartData = async (data: ChartData[]): Promise<void> => {
+  if (data.length === 0) {
+    return;
+  }
+
+  const idempotencyKey = getIdempotencyKey(data);
+
+  // Check if there's already an in-flight upsert for this data
+  const inFlight = inFlightUpserts.get(idempotencyKey);
+  if (inFlight) {
+    console.log(`Deduplicating upsert for ${idempotencyKey} (${data.length} rows)`);
+    return inFlight;
+  }
+
+  // Create new upsert operation
+  const upsertPromise = (async () => {
+    try {
+      const start = performance.now();
+
+      // Bulk insert is more efficient than individual inserts
+      db.insert(chart_data).values(data).onConflictDoNothing().run();
+
+      const end = performance.now();
+      const duration = end - start;
+      console.log(
+        `Inserted ${data.length} rows in ${duration.toFixed(2)}ms (${(
+          duration / data.length
+        ).toFixed(2)}ms per row)`
+      );
+    } catch (error) {
+      console.error(error);
+      throw error;
+    } finally {
+      // Remove from in-flight tracking once done (success or failure)
+      inFlightUpserts.delete(idempotencyKey);
+    }
+  })();
+
+  // Track the in-flight upsert IMMEDIATELY (before await) to prevent race conditions
+  inFlightUpserts.set(idempotencyKey, upsertPromise);
+
+  return upsertPromise;
 };
