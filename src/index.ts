@@ -23,9 +23,16 @@ import {
 } from "./lib/jobs";
 import { ChartDataSchema, TickDataSchema } from "./lib/open-api-schema";
 import { getTicks, injectTicks } from "./lib/ticks";
-import { fixHistoricalTimestamps, getYahooData, processRawYahooResponse } from "./lib/yahoo";
+import {
+  fixHistoricalTimestamps,
+  getYahooData,
+  processRawYahooResponse,
+} from "./lib/yahoo";
+import { honoApp } from "./paid";
 
 const PORT = process.env.PORT ?? 3000;
+
+const honoRequestHandler = honoApp.fetch;
 
 // Elysia API endpoints
 export const app = new Elysia()
@@ -286,6 +293,7 @@ export const app = new Elysia()
     })
   )
   .use(staticPlugin({ assets: "public", prefix: "" }))
+  .mount("/paid", honoRequestHandler)
   .listen(PORT);
 
 console.log(
