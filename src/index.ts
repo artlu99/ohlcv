@@ -2,7 +2,7 @@ import { cors } from "@elysiajs/cors";
 import { Patterns, cron } from "@elysiajs/cron";
 import { fromTypes, openapi } from "@elysiajs/openapi";
 import { staticPlugin } from "@elysiajs/static";
-import { differenceInDays, subMonths } from "date-fns";
+import { differenceInDays, isWeekend, subMonths } from "date-fns";
 import { Elysia, t } from "elysia";
 import invariant from "tiny-invariant";
 import {
@@ -22,10 +22,10 @@ import {
   splitKey,
 } from "./lib/jobs";
 import { ChartDataSchema, TickDataSchema } from "./lib/open-api-schema";
-import { getTicks } from "./lib/ticks";
-import { getYahooData, processRawYahooResponse } from "./lib/yahoo";
+import { getTicks, injectTicks } from "./lib/ticks";
+import { fixHistoricalTimestamps, getYahooData, processRawYahooResponse } from "./lib/yahoo";
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.NODE_ENV === "production" ? process.env.PORT : 3000;
 
 // Elysia API endpoints
 export const app = new Elysia()
@@ -183,10 +183,10 @@ export const app = new Elysia()
 
         // daysBehind is positive if the data is behind the end_date
         const daysBehind = differenceInDays(
-          new Date(end_date),
+          new Date(edate),
           new Date(chartData.slice(-1)[0].timestamp)
         );
-        if (daysBehind >= 1) {
+        if (daysBehind >= 1 && !isWeekend(new Date(edate))) {
           console.log(
             `${ticker} is ${pluralize(
               daysBehind,
@@ -197,7 +197,7 @@ export const app = new Elysia()
         }
       }
 
-      return chartData;
+      return fixHistoricalTimestamps(injectTicks(chartData));
     },
     {
       params: t.Object({
@@ -286,7 +286,7 @@ export const app = new Elysia()
     })
   )
   .use(staticPlugin({ assets: "public", prefix: "" }))
-  .listen(PORT);
+  .listen(PORT ?? 3000);
 
 console.log(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`

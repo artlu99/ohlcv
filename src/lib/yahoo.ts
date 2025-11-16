@@ -1,3 +1,4 @@
+import { endOfDay } from "date-fns";
 import { fetcher } from "itty-fetcher";
 import invariant from "tiny-invariant";
 import { ApiCache } from "./cache";
@@ -141,9 +142,18 @@ export const processRawYahooResponse = (
       high: rnd(res.chart.result[0].indicators.quote[0].high?.[index]),
       low: rnd(res.chart.result[0].indicators.quote[0].low?.[index]),
       volume: res.chart.result[0].indicators.quote[0].volume?.[index] ?? 0,
-      timestamp: new Date(t * 1000),
+      timestamp: new Date(t * 1000), // this is the open time
       dt_string: dt_string(t),
     }))
     .filter((c) => !!c.unadj_close);
   return ret;
+};
+
+export const fixHistoricalTimestamps = (data: ChartData[]): ChartData[] => {
+  const todayDtString = new Date().toLocaleDateString("en-CA");
+  return data.map((c) => ({
+    ...c,
+    timestamp:
+      c.dt_string === todayDtString ? c.timestamp : endOfDay(c.timestamp),
+  }));
 };
