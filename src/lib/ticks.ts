@@ -2,22 +2,24 @@ import { sort } from "radash";
 import invariant from "tiny-invariant";
 import { ChartData, TickData } from "./open-api-schema";
 
-const tickData = new Map<string, [number, number]>();
+type TickSource = "yahoo" | "ninja";
+const tickData = new Map<string, [number, number, TickSource]>();
 
 export const getTicks = () => {
-    const ticks = Array.from(tickData.entries()).map(
-        ([ticker, [mark, timestamp]]) => ({
-            ticker,
-            mark,
-            timestamp: new Date(timestamp), // Convert number to Date object
-        })
-    );
-    return ticks;
-}
+  const ticks = Array.from(tickData.entries()).map(
+    ([ticker, [mark, timestamp, source]]) => ({
+      ticker,
+      mark,
+      timestamp: new Date(timestamp), // Convert number to Date object
+      source,
+    })
+  );
+  return ticks;
+};
 
 export const setTick = (data: TickData) => {
-    tickData.set(data.ticker, [data.mark, data.timestamp.getTime()]);
-}
+  tickData.set(data.ticker, [data.mark, data.timestamp.getTime(), data.source]);
+};
 
 export const injectTicks = (rawData: ChartData[]): ChartData[] => {
   invariant(rawData.length > 0, "rawData is required");

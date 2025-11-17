@@ -33,6 +33,7 @@ export const chart_data = sqliteTable("chart_data", {
   volume: integer("volume").notNull(),
   adj_close: real("adj_close").notNull(),
   timestamp: timestamp("timestamp").notNull(),
+  source: text("source").notNull().$type<"yahoo" | "massive">(),
 }, (table) => [
   primaryKey({ columns: [table.ticker, table.dt_string] }),
 ]);

@@ -128,6 +128,7 @@ export const processRawYahooResponse = (
     mark: rnd(res.chart.result[0].meta.regularMarketPrice),
     timestamp: new Date(res.chart.result[0].meta.regularMarketTime * 1000),
     ticker,
+    source: "yahoo",
   };
   setTick(live);
 
@@ -144,6 +145,7 @@ export const processRawYahooResponse = (
       volume: res.chart.result[0].indicators.quote[0].volume?.[index] ?? 0,
       timestamp: new Date(t * 1000), // this is the open time
       dt_string: dt_string(t),
+      source: "yahoo" as const,
     }))
     .filter((c) => !!c.unadj_close);
   return ret;

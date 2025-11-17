@@ -86,6 +86,7 @@ export const getChartData = (
       volume: chart_data.volume,
       adj_close: chart_data.adj_close,
       timestamp: chart_data.timestamp,
+      source: chart_data.source,
     })
     .from(chart_data)
     .where(

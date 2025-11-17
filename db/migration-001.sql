@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS chart_data (
     volume INTEGER NOT NULL,
     adj_close REAL NOT NULL,
     timestamp INTEGER NOT NULL,
+    source TEXT NOT NULL,
     PRIMARY KEY (ticker, dt_string)
 );
 INSERT INTO chart_data (
@@ -19,7 +20,8 @@ INSERT INTO chart_data (
         unadj_close,
         volume,
         adj_close,
-        timestamp
+        timestamp,
+        source
     )
 VALUES (
         'AAPL',
@@ -31,5 +33,6 @@ VALUES (
         34398678,
         273.44,
         1762981260
+        'yahoo'
     )
 ON CONFLICT DO NOTHING;
