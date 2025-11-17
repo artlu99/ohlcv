@@ -22,13 +22,14 @@ import {
   splitKey,
 } from "./lib/jobs";
 import { ChartDataSchema, TickDataSchema } from "./lib/open-api-schema";
-import { getTicks, injectTicks } from "./lib/ticks";
+import { getTicks, injectTicks, setTick } from "./lib/ticks";
 import {
   fixHistoricalTimestamps,
   getYahooData,
   processRawYahooResponse,
 } from "./lib/yahoo";
 import { honoApp } from "./paid";
+import { getLive } from "./lib/ninja";
 
 const PORT = process.env.PORT ?? 3000;
 
@@ -71,6 +72,16 @@ export const app = new Elysia()
           if (status === JobStatus.PENDING) {
             // Mark as RUNNING atomically to prevent concurrent processing
             setJobStatus(ticker, jobType, JobStatus.RUNNING);
+
+            if (jobType === JobType.LIVE_ONLY) {
+              const live = await getLive(ticker);
+              if (live) {
+                setTick(live);
+                setJobStatus(ticker, jobType, JobStatus.COMPLETED);
+                continue;
+              }
+              setJobStatus(ticker, jobType, JobStatus.FAILED);
+            }
 
             try {
               const res = await getYahooData(

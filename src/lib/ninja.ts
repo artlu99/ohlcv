@@ -2,6 +2,7 @@ import { fetcher } from "itty-fetcher";
 import { Static, Type } from "typebox";
 import { Compile } from "typebox/compile";
 import { ApiCache } from "./cache";
+import { TickData } from "./open-api-schema";
 
 const ninjaApi = fetcher({
   base: `https://api.api-ninjas.com/v1`,
@@ -15,7 +16,7 @@ const NinjaResponse = Type.Object({
   name: Type.String(),
   price: Type.Number(),
   exchange: Type.String(),
-updated: Type.Number(),
+  updated: Type.Number(),
   currency: Type.String(),
 });
 type NinjaResponse = Static<typeof NinjaResponse>;
@@ -46,7 +47,7 @@ export const getNinjaData = async (
     console.log(`Fetching ${ticker} from Ninja API`);
 
     const response = await ninjaApi.get<NinjaResponse>(
-      `/stockprice?ticker=${ticker}`
+      `/stockprice?ticker=${encodeURIComponent(ticker.replace(".", "-"))}`
     );
 
     // Validate response
@@ -59,6 +60,16 @@ export const getNinjaData = async (
       );
     }
 
-    return response;
+    return { ...response, ticker: response.ticker.replace("-", ".") };
   });
+};
+
+export const getLive = async (ticker: string): Promise<TickData> => {
+  const response = await getNinjaData(ticker);
+  return {
+    ticker,
+    mark: response.price,
+    timestamp: new Date(response.updated * 1000),
+    source: "ninja",
+  };
 };

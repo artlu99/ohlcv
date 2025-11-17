@@ -50,6 +50,7 @@ export const injectTicks = (rawData: ChartData[]): ChartData[] => {
         low: tick[0],
         volume: 0,
         timestamp: new Date(tick[1]),
+        source: tick[2],
       },
     ];
   }

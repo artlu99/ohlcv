@@ -19,6 +19,6 @@ export const ChartDataSchema = t.Object({
   volume: t.Integer({ description: "Volume" }),
   adj_close: t.Number({ description: "Adjusted close price" }),
   timestamp: t.Date({ description: "ISO8601 timestamp" }),
-  source: t.Union([t.Literal("yahoo"), t.Literal("massive")], { description: "Chart data source" }),
+  source: t.Union([t.Literal("yahoo"), t.Literal("massive"), t.Literal("ninja")], { description: "Chart data source" }),
 });
 export type ChartData = Static<typeof ChartDataSchema>;
