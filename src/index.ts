@@ -2,7 +2,7 @@ import { cors } from "@elysiajs/cors";
 import { Patterns, cron } from "@elysiajs/cron";
 import { fromTypes, openapi } from "@elysiajs/openapi";
 import { staticPlugin } from "@elysiajs/static";
-import { differenceInDays, isWeekend, subMonths } from "date-fns";
+import { differenceInHours, isWeekend, subMonths } from "date-fns";
 import { Elysia, t } from "elysia";
 import invariant from "tiny-invariant";
 import {
@@ -53,10 +53,8 @@ export const app = new Elysia()
         const status = jobsStatus();
 
         console.log(
-          `${new Date().toISOString()}: ${status.total} jobs, ${
-            status.pending
-          } pending, ${status.running} running, ${
-            status.completed
+          `${new Date().toISOString()}: ${status.total} jobs, ${status.pending
+          } pending, ${status.running} running, ${status.completed
           } completed, ${status.failed} failed`
         );
       },
@@ -91,8 +89,8 @@ export const app = new Elysia()
                 jobType === JobType.FULL_UPDATE
                   ? "5y"
                   : jobType === JobType.PARTIAL_UPDATE
-                  ? "5d"
-                  : "1d"
+                    ? "5d"
+                    : "1d"
               );
 
               const chartData = processRawYahooResponse(res);
@@ -126,7 +124,7 @@ export const app = new Elysia()
       },
     })
   )
-  .get("/ready", () => ({ status: "ready" }), {
+  .get("/ready", () => ({ status: "ready" as const}), {
     detail: {
       summary: "Ready check",
       description: "Returns ready status",
@@ -159,7 +157,7 @@ export const app = new Elysia()
           t.Object({
             ticker: t.String({ description: "Ticker symbol" }),
             n: t.Number({ description: "Number of rows" }),
-            last: t.Date({ description: "Last updated" }),
+            last: t.Nullable(t.Date({ description: "Last updated" })),
           }),
           { description: "Most stale 5 tickers" }
         ),
@@ -200,15 +198,15 @@ export const app = new Elysia()
         invariant(chartData.length > 0, `${ticker} has no data`);
 
         // daysBehind is positive if the data is behind the end_date
-        const daysBehind = differenceInDays(
+        const hoursBehind = differenceInHours(
           new Date(edate),
           new Date(chartData.slice(-1)[0].timestamp)
         );
-        if (daysBehind >= 1 && !isWeekend(new Date(edate))) {
+        if (hoursBehind >= 8 && !isWeekend(new Date(edate))) {
           console.log(
             `${ticker} is ${pluralize(
-              daysBehind,
-              "day"
+              hoursBehind,
+              "hour"
             )} behind, adding partial update job`
           );
           addJob(ticker, JobType.PARTIAL_UPDATE);

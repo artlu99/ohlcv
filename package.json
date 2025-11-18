@@ -5,6 +5,7 @@
     "db:generate": "sqlite3 db/ohlcv.db3 < db/migration-001.sql",
     "dev": "bun run --watch src/index.ts",
     "build": "bun build --compile --minify-whitespace --minify-syntax --target bun --outfile build/elysia-ohlcv-server src/index.ts",
+    "lint": "biome check --write",
     "serve": "PORT=49999 ./build/elysia-ohlcv-server &!",
     "test": "bun test --env-file=.env.local"
   },
@@ -19,6 +20,7 @@
     "elysia": "latest",
     "hono": "^4.10.6",
     "itty-fetcher": "^1.0.10",
+    "lefthook": "^2.0.4",
     "node-cache": "^5.1.2",
     "radash": "^12.1.1",
     "tailwindcss": "^4.1.17",
@@ -28,6 +30,7 @@
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.19",
+    "biome": "^0.3.3",
     "bun-types": "latest",
     "daisyui": "^5.5.5"
   },

@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite";
 import { isBefore, isSameDay, isValid } from "date-fns";
-import { and, count, eq, gte, lte, max } from "drizzle-orm";
+import { and, count, eq, gte, lte, max, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { sort } from "radash";
 import invariant from "tiny-invariant";
@@ -66,7 +66,7 @@ export const getChartData = (
   // validate start_date is before end_date
   invariant(
     isBefore(new Date(start_date), new Date(end_date)) ||
-      isSameDay(new Date(start_date), new Date(end_date)),
+    isSameDay(new Date(start_date), new Date(end_date)),
     `start_date must be before end_date: ${start_date} is after ${end_date}`
   );
 
@@ -144,7 +144,19 @@ export const upsertChartData = async (data: ChartData[]): Promise<void> => {
       const start = performance.now();
 
       // Bulk insert is more efficient than individual inserts
-      db.insert(chart_data).values(data).onConflictDoNothing().run();
+      db.insert(chart_data).values(data).onConflictDoUpdate({
+        target: [chart_data.ticker, chart_data.dt_string],
+        set: {
+          open_trade: sql`excluded.open_trade`,
+          high: sql`excluded.high`,
+          low: sql`excluded.low`,
+          unadj_close: sql`excluded.unadj_close`,
+          volume: sql`excluded.volume`,
+          adj_close: sql`excluded.adj_close`,
+          timestamp: sql`excluded.timestamp`,
+          source: sql`excluded.source`,
+        },
+      }).execute();
 
       const end = performance.now();
       const duration = end - start;
