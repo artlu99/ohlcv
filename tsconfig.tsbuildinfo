@@ -1,1 +1,0 @@
-{"root":["./src/index.ts","./src/paid.ts","./src/lib/cache.ts","./src/lib/db-schema.ts","./src/lib/db.ts","./src/lib/helpers.ts","./src/lib/jobs.ts","./src/lib/massive.ts","./src/lib/ninja.ts","./src/lib/open-api-schema.ts","./src/lib/ticks.ts","./src/lib/yahoo.ts","./src/tests/basics.test.ts","./src/tests/market.test.ts"],"version":"5.9.3"}

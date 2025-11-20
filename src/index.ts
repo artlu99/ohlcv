@@ -53,8 +53,10 @@ export const app = new Elysia()
         const status = jobsStatus();
 
         console.log(
-          `${new Date().toISOString()}: ${status.total} jobs, ${status.pending
-          } pending, ${status.running} running, ${status.completed
+          `${new Date().toISOString()}: ${status.total} jobs, ${
+            status.pending
+          } pending, ${status.running} running, ${
+            status.completed
           } completed, ${status.failed} failed`
         );
       },
@@ -89,8 +91,8 @@ export const app = new Elysia()
                 jobType === JobType.FULL_UPDATE
                   ? "5y"
                   : jobType === JobType.PARTIAL_UPDATE
-                    ? "5d"
-                    : "1d"
+                  ? "5d"
+                  : "1d"
               );
 
               const chartData = processRawYahooResponse(res);
@@ -124,7 +126,7 @@ export const app = new Elysia()
       },
     })
   )
-  .get("/ready", () => ({ status: "ready" as const}), {
+  .get("/ready", () => ({ status: "ready" as const }), {
     detail: {
       summary: "Ready check",
       description: "Returns ready status",

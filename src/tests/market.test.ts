@@ -4,9 +4,8 @@ import { getMassiveData } from "../lib/massive";
 import { getYahooData, processRawYahooResponse } from "../lib/yahoo";
 
 describe("Ninja", () => {
-
   it("returns tick data", async () => {
-    const response = await getNinjaData("AAPL")
+    const response = await getNinjaData("AAPL");
 
     expect(response).toBeDefined();
     expect(response.price).toBeGreaterThan(0);
@@ -15,7 +14,7 @@ describe("Ninja", () => {
 
 describe("Massive", () => {
   it("returns a stock price data", async () => {
-    const response = await getMassiveData("AAPL", "2025-11-12")
+    const response = await getMassiveData("AAPL", "2025-11-12");
 
     expect(response).toBeDefined();
     expect(response.close).toBeGreaterThan(0);
@@ -24,11 +23,11 @@ describe("Massive", () => {
 
 describe("Yahoo", () => {
   it("returns a stock price data", async () => {
-    const response = await getYahooData("AAPL", "2025-11-12", "2025-11-12")
+    const response = await getYahooData("AAPL", "2025-11-12", "2025-11-12");
 
     expect(response).toBeDefined();
 
-    const res = processRawYahooResponse(response)
+    const res = processRawYahooResponse(response);
     expect(res.length).toBe(1);
     expect(res[0].ticker).toBe("AAPL");
     expect(res[0].dt_string).toBe("2025-11-12");

@@ -38,9 +38,7 @@ export const ninjaCache = new ApiCache<NinjaResponse>({
   },
 });
 
-export const getNinjaData = async (
-  ticker: string,
-): Promise<NinjaResponse> => {
+export const getNinjaData = async (ticker: string): Promise<NinjaResponse> => {
   const cacheKey = `${ticker}`;
 
   return ninjaCache.getOrFetch(cacheKey, async () => {

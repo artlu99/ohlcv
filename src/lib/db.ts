@@ -7,6 +7,11 @@ import invariant from "tiny-invariant";
 import { chart_data } from "./db-schema";
 import { ChartData } from "./open-api-schema";
 
+interface UpsertResult {
+  changes: number;
+  lastInsertRowid: number;
+}
+
 // Database connection
 const sqlite = new Database("./db/ohlcv.db3", { strict: true });
 const db = drizzle({ client: sqlite });
@@ -66,7 +71,7 @@ export const getChartData = (
   // validate start_date is before end_date
   invariant(
     isBefore(new Date(start_date), new Date(end_date)) ||
-    isSameDay(new Date(start_date), new Date(end_date)),
+      isSameDay(new Date(start_date), new Date(end_date)),
     `start_date must be before end_date: ${start_date} is after ${end_date}`
   );
 
@@ -134,7 +139,9 @@ export const upsertChartData = async (data: ChartData[]): Promise<void> => {
   // Check if there's already an in-flight upsert for this data
   const inFlight = inFlightUpserts.get(idempotencyKey);
   if (inFlight) {
-    console.log(`Deduplicating upsert for ${idempotencyKey} (${data.length} rows)`);
+    console.log(
+      `Deduplicating upsert for ${idempotencyKey} (${data.length} rows)`
+    );
     return inFlight;
   }
 
@@ -144,26 +151,39 @@ export const upsertChartData = async (data: ChartData[]): Promise<void> => {
       const start = performance.now();
 
       // Bulk insert is more efficient than individual inserts
-      db.insert(chart_data).values(data).onConflictDoUpdate({
-        target: [chart_data.ticker, chart_data.dt_string],
-        set: {
-          open_trade: sql`excluded.open_trade`,
-          high: sql`excluded.high`,
-          low: sql`excluded.low`,
-          unadj_close: sql`excluded.unadj_close`,
-          volume: sql`excluded.volume`,
-          adj_close: sql`excluded.adj_close`,
-          timestamp: sql`excluded.timestamp`,
-          source: sql`excluded.source`,
-        },
-      }).execute();
+      // Only update when data actually differs (atomic operation)
+      const result = (await db
+        .insert(chart_data)
+        .values(data)
+        .onConflictDoUpdate({
+          target: [chart_data.ticker, chart_data.dt_string],
+          set: {
+            open_trade: sql`excluded.open_trade`,
+            high: sql`excluded.high`,
+            low: sql`excluded.low`,
+            unadj_close: sql`excluded.unadj_close`,
+            volume: sql`excluded.volume`,
+            adj_close: sql`excluded.adj_close`,
+            timestamp: sql`excluded.timestamp`,
+            source: sql`excluded.source`,
+          },
+          where: sql`chart_data.open_trade != excluded.open_trade
+                OR chart_data.high != excluded.high
+                OR chart_data.low != excluded.low
+                OR chart_data.unadj_close != excluded.unadj_close
+                OR chart_data.volume != excluded.volume
+                OR chart_data.adj_close != excluded.adj_close
+                OR chart_data.timestamp != excluded.timestamp
+                OR chart_data.source != excluded.source`,
+        })
+        .execute()) as unknown as UpsertResult;
 
       const end = performance.now();
       const duration = end - start;
       console.log(
-        `Inserted ${data.length} rows in ${duration.toFixed(2)}ms (${(
-          duration / data.length
-        ).toFixed(2)}ms per row)`
+        `Inserted/updated ${result.changes} rows in ${duration.toFixed(
+          2
+        )}ms (${(duration / data.length).toFixed(2)}ms per row)`
       );
     } catch (error) {
       console.error(error);

@@ -4,7 +4,9 @@ import invariant from "tiny-invariant";
 
 const honoApp = new Hono();
 
+const payTo = process.env.ADDRESS as `0x${string}`;
 // const facilitatorUrl = process.env.FACILITATOR_URL as Resource;
+invariant(process.env.ADDRESS, "ADDRESS is required");
 // invariant(facilitatorUrl, "FACILITATOR_URL is required");
 
 honoApp
@@ -13,8 +15,8 @@ honoApp
   //     payTo,
   //     {
   //       "/": {
-  //         price: "$0.0001",
-  //         network: "base", // use base-sepolia for testing
+  //         price: "$0.001",
+  //         network: "base",
   //       },
   //     },
   //     {
@@ -22,12 +24,7 @@ honoApp
   //     }
   //   )
   // )
-  .get("/", (c) => {
-    invariant(process.env.ADDRESS, "ADDRESS is required");
-    const payTo = process.env.ADDRESS as `0x${string}`;
-
-    return c.text(`Hello, thank you for paying ${payTo}!`);
-  });
+  .get("/", (c) => c.text(`Hello, thank you for paying ${payTo}!`));
 
 // Export the Hono app as a handler
 export { honoApp };

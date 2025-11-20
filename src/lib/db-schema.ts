@@ -23,17 +23,19 @@ const timestamp = customType<{
 });
 
 // chart_data
-export const chart_data = sqliteTable("chart_data", {
-  ticker: text("ticker").notNull(),
-  dt_string: text("dt_string").notNull(),
-  open_trade: real("open_trade").notNull(),
-  high: real("high").notNull(),
-  low: real("low").notNull(),
-  unadj_close: real("unadj_close").notNull(),
-  volume: integer("volume").notNull(),
-  adj_close: real("adj_close").notNull(),
-  timestamp: timestamp("timestamp").notNull(),
-  source: text("source").notNull().$type<"yahoo" | "massive" | "ninja">(),
-}, (table) => [
-  primaryKey({ columns: [table.ticker, table.dt_string] }),
-]);
+export const chart_data = sqliteTable(
+  "chart_data",
+  {
+    ticker: text("ticker").notNull(),
+    dt_string: text("dt_string").notNull(),
+    open_trade: real("open_trade").notNull(),
+    high: real("high").notNull(),
+    low: real("low").notNull(),
+    unadj_close: real("unadj_close").notNull(),
+    volume: integer("volume").notNull(),
+    adj_close: real("adj_close").notNull(),
+    timestamp: timestamp("timestamp").notNull(),
+    source: text("source").notNull().$type<"yahoo" | "massive" | "ninja">(),
+  },
+  (table) => [primaryKey({ columns: [table.ticker, table.dt_string] })]
+);

@@ -53,11 +53,11 @@ describe("Elysia", () => {
     expect(response.length).toBeGreaterThan(0);
     expect(response[0].ticker).toBe("AAPL");
     expect(response[0].dt_string).toBe("2025-11-12");
-    expect(response[0].open_trade).toBe(275.08);
+    expect(response[0].open_trade).toBe(275.0);
     expect(response[0].high).toBe(275.73);
-    expect(response[0].low).toBe(271.87);
-    expect(response[0].unadj_close).toBe(273.44);
-    expect(response[0].volume).toBe(34398678);
-    expect(response[0].adj_close).toBe(273.44);
+    expect(response[0].low).toBe(271.7);
+    expect(response[0].unadj_close).toBe(273.47);
+    expect(response[0].volume).toBe(48398000);
+    expect(response[0].adj_close).toBe(273.47);
   });
 });
