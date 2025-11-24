@@ -18,6 +18,21 @@ export const getTicks = () => {
 };
 
 export const setTick = (data: TickData) => {
+  // pull existing tick data for the ticker
+  const existingTick = tickData.get(data.ticker);
+  if (!existingTick) {
+    // no existing tick data, so set the new tick data
+    tickData.set(data.ticker, [data.mark, data.timestamp.getTime(), data.source]);
+    return;
+  }
+
+  // compare timestamp with existing tick data
+  if (existingTick[1] >= data.timestamp.getTime()) {
+    // the new tick data is older than the existing tick data, so do not set it
+    return;
+  }
+  
+  // the new tick data is newer than the existing tick data, so set it
   tickData.set(data.ticker, [data.mark, data.timestamp.getTime(), data.source]);
 };
 
